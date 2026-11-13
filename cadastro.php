@@ -1,40 +1,44 @@
 <?php
-$codigo = $_POST['codigo'];
-$nome = $_POST['nome'];
-$categoria = $_POST['categoria'];
-$marca = $_POST['marca'];
-$tamanho = $_POST['tamanho'];
-$cor = $_POST['cor'];
-$material = $_POST['material'];
-$preco = $_POST['preco'];
-$quantidade = $_POST['quantidade'];
-$descricao = $_POST['descricao'];
-
-$conexao = new mysqli('localhost', 'root', 'Home@spSENAI2025!', 'lojaroupa');
-
+$nome= $_POST['nome'];
+$matricula= $_POST['matricula'];
+$funcao= $_POST['funcao'];
+$departamento= $_POST['departamento'];
+$idade= $_POST ['idade'];
+$cpf= $_POST['cpf'];
+$rg= $_POST['rg'];
+$salario= $_POST['salario'];
+$endereco= $_POST['endereco'];
+$uf= $_POST['uf'];
+$pais= $_POST['pais'];
+//define conexão
+$servidor='localhost';
+$usuario='root';
+$senha='Home@spSENAI2025!';
+$banco='cadastro';
+//realiza conexão
+$conexao= new mysqli($servidor, $usuario, $senha, $banco);
+//verifica conexão com exito ou não
 if ($conexao->connect_error) {
-    die('Falha na conexão: ' . $conexao->connect_error);
+    die('Falha na conexao:'. $conexao->connect_error);
 }
-
-$sql = "INSERT INTO roupas (codigo, nome, categoria, marca, tamanho, cor, material, preco, quantidade, descricao)
- VALUES ('$codigo', '$nome', '$categoria', '$marca', '$tamanho', '$cor', '$material', $preco, $quantidade, '$descricao')";
-
+$sql= "INSERT INTO funcionarios (nome,matricula,funcao,departamento,idade,cpf,rg,salario,endereco,uf,pais)VALUES
+('$nome','$matricula','$funcao','$departamento','$idade','$cpf','$rg','$salario','$endereco','$uf','$pais')";
 if ($conexao->query($sql) === TRUE) {
-    echo "<h2>Roupa cadastrada com sucesso!</h2>";
+    echo "<h2>Cliente cadastrado com sucesso!</h2>";
     echo "<p>Dados registrados:</p>";
-    echo "Código: " . $codigo . "<br>";
-    echo "Nome da Roupa: " . $nome . "<br>";
-    echo "Categoria: " . $categoria . "<br>";
-    echo "Marca: " . $marca . "<br>";
-    echo "Tamanho: " . $tamanho . "<br>";
-    echo "Cor: " . $cor . "<br>";
-    echo "Material: " . $material . "<br>";
-    echo "Preço (ex.: 49.90): " . $preco . "<br>";
-    echo "Quantidade em Estoque: " . $quantidade . "<br>";
-    echo "Descrição: " . $descricao . "<br>";
+    echo "nome: ". $nome . "<br>";
+    echo "matricula: ". $matricula . "<br>";
+    echo "funcao: ". $funcao . "<br>";
+    echo "departamento: ". $departamento . "<br>";
+    echo "idade: ". $idade . "<br>";
+    echo "cpf: ". $cpf . "<br>";
+    echo "rg: ". $rg . "<br>";
+    echo "salario: ". $salario . "<br>";
+    echo "endereco: ". $endereco . "<br>";
+    echo "uf: ". $uf . "<br>";
+    echo "pais: ". $pais . "<br>";
 } else {
-    echo "Erro ao cadastrar: " . $conexao->error;
+    echo "Erro ao cadastrar: " .$conexao->error;
 }
-
 $conexao->close();
 ?>
