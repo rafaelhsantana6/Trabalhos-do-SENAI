@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird Neon</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #080810;
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+        #game-container {
+            position: relative;
+            box-shadow: 0 0 30px rgba(0, 242, 254, 0.3);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+            background: radial-gradient(circle at center, #14142a 0%, #080814 100%);
+        }
+        .ui-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: rgba(8, 8, 20, 0.85);
+            transition: opacity 0.3s ease;
+            z-index: 10;
+        }
+        .hide {
+            display: none !important;
+            opacity: 0;
+        }
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            color: #00f2fe;
+            text-shadow: 0 0 15px rgba(0, 242, 254, 0.6);
+            text-align: center;
+        }
+        p {
+            font-size: 1rem;
+            color: #a0a0ca;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 80%;
+            line-height: 1.5;
+        }
+        .btn {
+            background: linear-gradient(45deg, #00f2fe, #4facfe);
+            border: none;
+            color: #080814;
+            padding: 12px 35px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+            transition: transform 0.1s, box-shadow 0.2s;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.7);
+        }
+        .btn:active {
+            transform: scale(0.98);
+        }
+        .score-info {
+            font-size: 1.2rem;
+            margin-top: 15px;
+            color: #ff007f;
+            text-shadow: 0 0 10px rgba(255, 0, 127, 0.5);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <!-- Tela de Início -->
+        <div id="start-screen" class="ui-screen">
+            <h1>Flappy Neon</h1>
+            <p>Espaços reajustados para uma gameplay mais justa e divertida.</p>
+            <button class="btn" onclick="startGame()">Jogar</button>
+            <div class="score-info" id="best-score-init">Recorde: 0</div>
+        </div>
+
+        <!-- Tela de Game Over -->
+        <div id="gameover-screen" class="ui-screen hide">
+            <h1 style="color: #ff007f; text-shadow: 0 0 15px rgba(255, 0, 127, 0.6);">Fim de Jogo</h1>
+            <div class="score-info" id="final-score" style="margin-top: 0; color: #fff; text-shadow: none;">Pontos: 0</div>
+            <div class="score-info" id="best-score" style="margin-bottom: 25px;">Recorde: 0</div>
+            <button class="btn" onclick="startGame()">Tentar Novamente</button>
+        </div>
+
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+    </div>
+
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+
+        // Telas de Interface
+        const startScreen = document.getElementById("start-screen");
+        const gameoverScreen = document.getElementById("gameover-screen");
+        const finalScoreText = document.getElementById("final-score");
+        const bestScoreText = document.getElementById("best-score");
+        const bestScoreInitText = document.getElementById("best-score-init");
+
+        // Configurações do Jogo (Ajustados para facilidade)
+        const GRAVITY = 0.35;
+        const JUMP_STRENGTH = -7.5;
+        const PIPE_SPEED = 2.5;         
+        const PIPE_SPACING = 320;       
+        const PIPE_GAP = 200;           
+        const MIN_PIPE_HEIGHT = 80;     
+
+        // Estado do Jogo
+        let bird;
+        let pipes = [];
+        let particles = [];
+        let stars = [];
+        let score = 0;
+        let bestScore = localStorage.getItem("flappy_neon_best") || 0;
+        let isGameRunning = false;
+
+        bestScoreInitText.innerText = `Recorde: ${bestScore}`;
+
+        // Inicializar estrelas de fundo
+        for (let i = 0; i < 30; i++) {
+            stars.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 2,
+                speed: Math.random() * 0.5 + 0.1
+            });
+        }
+
+        class Bird {
+            constructor() {
+                this.x = 80;
+                this.y = canvas.height / 2;
+                this.radius = 14;
+                this.velocity = 0;
+                this.trail = [];
+            }
+
+            draw() {
+                if (isGameRunning) {
+                    this.trail.push({x: this.x, y: this.y});
+                    if (this.trail.length > 8) this.trail.shift();
+                }
+
+                this.trail.forEach((point, index) => {
+                    ctx.beginPath();
+                    ctx.arc(point.x, point.y, this.radius * (index / this.trail.length), 0, Math.PI * 2);
+                    ctx.fillStyle = `rgba(0, 242, 254, ${index / 20})`;
+                    ctx.fill();
+                });
+
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fillStyle = "#00f2fe";
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "#00f2fe";
+                ctx.fill();
+                ctx.shadowBlur = 0; 
+
+                ctx.fillStyle = "#080814";
+                ctx.fillRect(this.x + 2, this.y - 6, 8, 4);
+            }
+
+            update() {
+                this.velocity += GRAVITY;
+                this.y += this.velocity;
+
+                if (this.y - this.radius < 0) {
+                    this.y = this.radius;
+                    this.velocity = 0;
+                }
+
+                if (this.y + this.radius > canvas.height) {
+                    endGame();
+                }
+            }
+
+            jump() {
+                this.velocity = JUMP_STRENGTH;
+            }
+        }
+
+        class Pipe {
+            constructor(x) {
+                this.x = x;
+                const availableHeight = canvas.height - PIPE_GAP - (MIN_PIPE_HEIGHT * 2);
+                this.topHeight = MIN_PIPE_HEIGHT + Math.floor(Math.random() * availableHeight);
+                this.bottomY = this.topHeight + PIPE_GAP;
+                this.width = 65;
+                this.passed = false;
+            }
+
+            draw() {
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = "#ff007f";
+                ctx.fillStyle = "#ff007f";
+
+                drawRoundRect(ctx, this.x, 0, this.width, this.topHeight, {bl: 6, br: 6});
+                drawRoundRect(ctx, this.x, this.bottomY, this.width, canvas.height - this.bottomY, {tl: 6, tr: 6});
+
+                ctx.shadowBlur = 0;
+            }
+
+            update() {
+                this.x -= PIPE_SPEED;
+            }
+
+            collidesWith(bird) {
+                if (bird.x + bird.radius > this.x && bird.x - bird.radius < this.x + this.width) {
+                    if (bird.y - bird.radius < this.topHeight || bird.y + bird.radius > this.bottomY) {
+                        return true;
+                    }
+                }
+                return false;
+            }
+        }
+
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 4 + 2;
+                this.speedX = (Math.random() - 0.5) * 8;
+                this.speedY = (Math.random() - 0.5) * 8;
+                this.color = Math.random() > 0.5 ? "#00f2fe" : "#ff007f";
+                this.alpha = 1;
+            }
+
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.alpha -= 0.03;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+        }
+
+        function drawRoundRect(ctx, x, y, width, height, radius = {}) {
+            const r = { tl: 0, tr: 0, br: 0, bl: 0, ...radius };
+            ctx.beginPath();
+            ctx.moveTo(x + r.tl, y);
+            ctx.lineTo(x + width - r.tr, y);
+            ctx.quadraticCurveTo(x + width, y, x + width, y + r.tr);
+            ctx.lineTo(x + width, y + height - r.br);
+            ctx.quadraticCurveTo(x + width, y + height, x + width - r.br, y + height);
+            ctx.lineTo(x + r.bl, y + height);
+            ctx.quadraticCurveTo(x, y + height, x, y + height - r.bl);
+            ctx.lineTo(x, y + r.tl);
+            ctx.quadraticCurveTo(x, y, x + r.tl, y);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        function startGame() {
+            bird = new Bird();
+            pipes = [new Pipe(canvas.width + 50)];
+            particles = [];
+            score = 0;
+            isGameRunning = true;
+

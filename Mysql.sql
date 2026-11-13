@@ -1,0 +1,19 @@
+CREATE DATABASE cadastro;
+
+use cadastro;
+
+CREATE TABLE funcionarios (
+idFunc INT AUTO_INCREMENT PRIMARY KEY ,
+nome VARCHAR(100) NOT NULL,
+matricula VARCHAR(20) NOT NULL UNIQUE,
+funcao VARCHAR (50) NOT NULL,
+departamento VARCHAR(50) NOT NULL,
+idade INT CHECK (idade>=16),
+cpf VARCHAR (11) NOT NULL UNIQUE,
+rg VARCHAR (20),
+salario DECIMAL (10,2) NOT NULL,
+endereco VARCHAR(255),
+uf CHAR(2),
+pais VARCHAR(50) DEFAULT 'Brasil'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
